@@ -1,0 +1,368 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+
+model User {
+  id        String   @id @default(cuid())
+  role      UserRole @default(USER)
+  name      String?
+  email     String   @unique
+  birthYear Int?
+  locale    String   @default("en-US")
+  createdAt DateTime @default(now())
+
+  // Relations
+  profile           Profile?
+  notes             Notes[]
+  songs             Song[]
+  quizzes           Quiz[]
+  engagementEvents  EngagementEvent[]
+  recommendations   RecommendationsCache[]
+  assignments       Assignment[]
+  moderationDecisions Moderation[] @relation("ModerationDecisionBy")
+
+  @@map("users")
+}
+
+model Profile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  interests        String[] @default([])
+  preferredGenres  String[] @default([])
+  privacyDefaults  Json     @default("{}")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Notes {
+  id          String      @id @default(cuid())
+  userId      String
+  subject     String
+  rawRef      String?      // S3 key for original file
+  cleanedText String
+  topicTags   String[]    @default([])
+  complexity  Complexity  @default(SIMPLE)
+  createdAt   DateTime    @default(now())
+
+  // Relations
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  facts Fact[]
+  songs Song[]
+
+  @@map("notes")
+}
+
+model Fact {
+  id          String   @id @default(cuid())
+  notesId     String
+  text        String
+  importance  Int      @default(1) // 1-5 scale
+  entities    String[] @default([])
+  mustInclude Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  notes Notes @relation(fields: [notesId], references: [id], onDelete: Cascade)
+
+  @@map("facts")
+}
+
+model Song {
+  id             String      @id @default(cuid())
+  notesId        String
+  createdBy      String
+  provider       Provider    @default(SUNO)
+  styleGenre     String
+  bpm            Int
+  lyricDensity   LyricDensity @default(MEDIUM)
+  lengthSec      Int
+  mode           SongMode    @default(SONG)
+  audioUrl       String?
+  lyricsUrl      String?
+  captionsUrl    String?
+  remixOf        String?     // ID of original song
+  isPublic       Boolean     @default(false)
+  visibilityScope VisibilityScope @default(PRIVATE)
+  createdAt      DateTime    @default(now())
+
+  // Relations
+  notes           Notes           @relation(fields: [notesId], references: [id], onDelete: Cascade)
+  creator         User            @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  stats           SongStats?
+  engagementEvents EngagementEvent[]
+  quizzes         Quiz[]
+  moderation      Moderation[]
+
+  @@map("songs")
+}
+
+model SongStats {
+  id               String   @id @default(cuid())
+  songId           String   @unique
+  plays            Int      @default(0)
+  uniqueListeners  Int      @default(0)
+  completionPct    Float    @default(0.0)
+  dailyReplays     Int      @default(0)
+  likes            Int      @default(0)
+  shares           Int      @default(0)
+  quizLiftDelta    Float    @default(0.0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@map("song_stats")
+}
+
+model EngagementEvent {
+  id        String        @id @default(cuid())
+  userId    String
+  songId    String
+  eventType EngagementType
+  ts        DateTime      @default(now())
+  device    String?
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@map("engagement_events")
+  @@index([userId, ts])
+  @@index([songId, ts])
+}
+
+model Quiz {
+  id            String   @id @default(cuid())
+  songId        String
+  userId        String
+  scheduledAt   DateTime
+  deliveredVia  DeliveryMethod @default(EMAIL)
+  completedAt   DateTime?
+  scorePct      Float?
+  confidenceAvg Float?
+  createdAt     DateTime @default(now())
+
+  // Relations
+  song   Song       @relation(fields: [songId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items  QuizItem[]
+
+  @@map("quizzes")
+  @@index([userId, scheduledAt])
+}
+
+model QuizItem {
+  id           String     @id @default(cuid())
+  quizId       String
+  type         QuizType
+  promptText   String
+  correctAnswer String
+  distractors  String[]   @default([])
+  result       QuizResult?
+  latencyMs    Int?
+  createdAt    DateTime   @default(now())
+
+  // Relations
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@map("quiz_items")
+}
+
+model RecommendationsCache {
+  id               String   @id @default(cuid())
+  userId           String
+  candidateIds      String[] @default([])
+  computedAt       DateTime @default(now())
+  featuresSnapshot Json
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("recommendations_cache")
+  @@index([userId, computedAt])
+}
+
+model Experiment {
+  id        String        @id @default(cuid())
+  name      String        @unique
+  variants  Json
+  status    ExperimentStatus @default(DRAFT)
+  startAt   DateTime?
+  endAt     DateTime?
+  createdAt DateTime      @default(now())
+
+  // Relations
+  assignments Assignment[]
+
+  @@map("experiments")
+}
+
+model Assignment {
+  id           String   @id @default(cuid())
+  userId       String
+  experimentId String
+  variant      String
+  assignedAt   DateTime @default(now())
+
+  // Relations
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experiment Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  @@map("assignments")
+  @@unique([userId, experimentId])
+}
+
+model Moderation {
+  id          String           @id @default(cuid())
+  targetType  ModerationTarget
+  targetId    String
+  status      ModerationStatus @default(PENDING)
+  reason      String?
+  decisionBy  String?
+  decidedAt   DateTime?
+  notes       String?
+  createdAt   DateTime         @default(now())
+
+  // Relations
+  song Song? @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  moderator User? @relation("ModerationDecisionBy", fields: [decisionBy], references: [id])
+
+  @@map("moderation")
+  @@index([status, createdAt])
+}
+
+model ProviderJob {
+  id                String        @id @default(cuid())
+  provider          Provider
+  requestPayloadRef String        // S3 key for request payload
+  state             JobState      @default(QUEUED)
+  attempts          Int           @default(0)
+  lastError         String?
+  outputRef         String?       // S3 key for output
+  costEstimate      Float?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@map("provider_jobs")
+  @@index([state, createdAt])
+}
+
+model AuditLog {
+  id       String   @id @default(cuid())
+  actor    String
+  action   String
+  target   String
+  ts       DateTime @default(now())
+  metadata Json?
+
+  @@map("audit_logs")
+  @@index([ts])
+}
+
+// Enums
+enum UserRole {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+enum Complexity {
+  SIMPLE
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum Provider {
+  SUNO
+  FALLBACK
+}
+
+enum LyricDensity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum SongMode {
+  SONG
+  NARRATION
+}
+
+enum VisibilityScope {
+  PRIVATE
+  FRIENDS
+  PUBLIC
+}
+
+enum EngagementType {
+  PLAY
+  PAUSE
+  COMPLETE
+  LIKE
+  SHARE
+  REMIX
+  QUIZ_START
+  QUIZ_COMPLETE
+}
+
+enum DeliveryMethod {
+  EMAIL
+  PUSH
+  WEB
+}
+
+enum QuizType {
+  RECALL
+  MCQ
+  CLOZE
+}
+
+enum QuizResult {
+  CORRECT
+  INCORRECT
+  SKIPPED
+}
+
+enum ExperimentStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+enum ModerationTarget {
+  SONG
+  USER
+  COMMENT
+}
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ESCALATED
+}
+
+enum JobState {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  RETRYING
+}

@@ -1,0 +1,137 @@
+{
+  "name": "Song",
+  "type": "object",
+  "properties": {
+    "notes_id": {
+      "type": "string",
+      "description": "Reference to the source notes"
+    },
+    "title": {
+      "type": "string",
+      "description": "Song title"
+    },
+    "subject": {
+      "type": "string",
+      "enum": [
+        "math",
+        "science",
+        "history",
+        "language",
+        "literature",
+        "geography",
+        "chemistry",
+        "biology",
+        "physics",
+        "other"
+      ]
+    },
+    "provider": {
+      "type": "string",
+      "enum": [
+        "suno",
+        "instrumental_tts",
+        "fallback"
+      ],
+      "default": "suno"
+    },
+    "style_genre": {
+      "type": "string",
+      "enum": [
+        "rap",
+        "pop",
+        "lullaby",
+        "lo-fi",
+        "acoustic",
+        "electronic",
+        "r&b"
+      ],
+      "default": "pop"
+    },
+    "bpm": {
+      "type": "number",
+      "minimum": 60,
+      "maximum": 180,
+      "default": 120
+    },
+    "lyric_density": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "default": "medium"
+    },
+    "length_sec": {
+      "type": "number",
+      "minimum": 30,
+      "maximum": 300,
+      "default": 60
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "song",
+        "narration"
+      ],
+      "default": "song",
+      "description": "Song mode or narration for sensitive topics"
+    },
+    "lyrics": {
+      "type": "string",
+      "description": "Song lyrics or narration text"
+    },
+    "audio_url": {
+      "type": "string",
+      "description": "URL to the generated audio file"
+    },
+    "lyrics_url": {
+      "type": "string",
+      "description": "URL to lyrics text file"
+    },
+    "captions_url": {
+      "type": "string",
+      "description": "URL to karaoke captions file (LRC/SRT)"
+    },
+    "remix_of": {
+      "type": "string",
+      "description": "ID of original song if this is a remix"
+    },
+    "is_public": {
+      "type": "boolean",
+      "default": false
+    },
+    "visibility_scope": {
+      "type": "string",
+      "enum": [
+        "private",
+        "friends",
+        "public"
+      ],
+      "default": "private"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Provider job reference"
+    },
+    "generation_status": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "planning",
+        "generating",
+        "streaming",
+        "complete",
+        "failed"
+      ],
+      "default": "queued"
+    }
+  },
+  "required": [
+    "notes_id",
+    "title",
+    "subject",
+    "style_genre",
+    "lyrics"
+  ]
+}

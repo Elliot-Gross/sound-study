@@ -1,0 +1,44 @@
+{
+  "name": "SongStats",
+  "type": "object",
+  "properties": {
+    "song_id": {
+      "type": "string",
+      "description": "Reference to song"
+    },
+    "plays": {
+      "type": "number",
+      "default": 0
+    },
+    "unique_listeners": {
+      "type": "number",
+      "default": 0
+    },
+    "completion_pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0
+    },
+    "daily_replays": {
+      "type": "number",
+      "default": 0
+    },
+    "likes": {
+      "type": "number",
+      "default": 0
+    },
+    "shares": {
+      "type": "number",
+      "default": 0
+    },
+    "quiz_lift_delta": {
+      "type": "number",
+      "description": "Quiz score improvement after listening",
+      "default": 0
+    }
+  },
+  "required": [
+    "song_id"
+  ]
+}

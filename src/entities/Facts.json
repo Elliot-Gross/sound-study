@@ -1,0 +1,36 @@
+{
+  "name": "Facts",
+  "type": "object",
+  "properties": {
+    "notes_id": {
+      "type": "string",
+      "description": "Reference to parent notes"
+    },
+    "text": {
+      "type": "string",
+      "description": "The factual content"
+    },
+    "importance": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "default": 3
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Named entities in this fact"
+    },
+    "must_include": {
+      "type": "boolean",
+      "default": true,
+      "description": "Must be included in song lyrics"
+    }
+  },
+  "required": [
+    "notes_id",
+    "text"
+  ]
+}
